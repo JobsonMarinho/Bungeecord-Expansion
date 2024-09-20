@@ -73,6 +73,11 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
     public String onRequest(final OfflinePlayer player, String identifier) {
         final int value;
 
+        if (identifier.startsWith("online_")) {
+            final String server = identifier.substring(7).toLowerCase();
+            return counts.containsKey(server) ? "§aOnline" : "§cOffline";
+        }
+
         switch (identifier.toLowerCase()) {
             case "all":
             case "total":
