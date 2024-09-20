@@ -10,6 +10,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.clip.placeholderapi.expansion.Taskable;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitTask;
@@ -33,9 +34,11 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
     private static final Splitter SPLITTER = Splitter.on(",").trimResults();
 
-
-    private final Map<String, Integer>        counts = new HashMap<>();
+    private final Map<String, Integer> counts = new HashMap<>();
     private final AtomicReference<BukkitTask> cached = new AtomicReference<>();
+
+    private String online = "Online";
+    private String offline = "Offline";
 
     private static Field inputField;
 
@@ -75,7 +78,7 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
         if (identifier.startsWith("online_")) {
             final String server = identifier.substring(7).toLowerCase();
-            return counts.containsKey(server) ? "§aOnline" : "§cOffline";
+            return counts.containsKey(server) ? online : offline;
         }
 
         switch (identifier.toLowerCase()) {
@@ -93,12 +96,16 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
     @Override
     public void start() {
+        if (hasString("online"))
+            this.online = getString("online", "Online");
+        if (hasString("offline"))
+            this.offline = getString("offline", "Offline");
+
         final BukkitTask task = Bukkit.getScheduler().runTaskTimer(getPlaceholderAPI(), () -> {
 
             if (counts.isEmpty()) {
                 sendServersChannelMessage();
-            }
-            else {
+            } else {
                 counts.keySet().forEach(this::sendPlayersChannelMessage);
             }
 
@@ -112,6 +119,13 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
             Bukkit.getMessenger().registerOutgoingPluginChannel(getPlaceholderAPI(), MESSAGE_CHANNEL);
             Bukkit.getMessenger().registerIncomingPluginChannel(getPlaceholderAPI(), MESSAGE_CHANNEL, this);
         }
+    }
+
+    private boolean hasString(String path) {
+        ConfigurationSection section = this.getConfigSection();
+        if (section == null)
+            return false;
+        return section.contains(path);
     }
 
     @Override
@@ -140,13 +154,13 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
         try {
             DataInputStream stream = (DataInputStream) inputField.get(in);
             switch (in.readUTF()) {
-                    case PLAYERS_CHANNEL:
-                        if (stream.available() == 0) return; // how ?
-                        final String server = in.readUTF();
-                        if (stream.available() == 0) { // how ? x2
-                            getPlaceholderAPI().getLogger().log(Level.SEVERE, String.format("[%s] Could not get the player count from server %s.", getName(), server));
-                            counts.put(server.toLowerCase(), 0);
-                        } else counts.put(server.toLowerCase(), in.readInt());
+                case PLAYERS_CHANNEL:
+                    if (stream.available() == 0) return; // how ?
+                    final String server = in.readUTF();
+                    if (stream.available() == 0) { // how ? x2
+                        getPlaceholderAPI().getLogger().log(Level.SEVERE, String.format("[%s] Could not get the player count from server %s.", getName(), server));
+                        counts.put(server.toLowerCase(), 0);
+                    } else counts.put(server.toLowerCase(), in.readInt());
                     break;
                 case SERVERS_CHANNEL:
                     SPLITTER.split(in.readUTF()).forEach(serverName -> counts.putIfAbsent(serverName.toLowerCase(), 0));
@@ -159,7 +173,8 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
 
     private void sendServersChannelMessage() {
-        sendMessage(SERVERS_CHANNEL, out -> { });
+        sendMessage(SERVERS_CHANNEL, out -> {
+        });
     }
 
     private void sendPlayersChannelMessage(final String serverName) {
