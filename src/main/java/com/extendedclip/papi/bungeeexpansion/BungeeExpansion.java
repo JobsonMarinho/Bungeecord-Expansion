@@ -63,12 +63,16 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
     @Override
     public String getVersion() {
-        return "2.3";
+        return "2.4";
     }
 
     @Override
     public Map<String, Object> getDefaults() {
-        return Collections.singletonMap(CONFIG_INTERVAL, 30);
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put(CONFIG_INTERVAL, 30);
+        defaults.put("online", "Online");
+        defaults.put("offline", "Offline");
+        return defaults;
     }
 
 
@@ -96,10 +100,8 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
 
     @Override
     public void start() {
-        if (hasString("online"))
-            this.online = getString("online", "Online");
-        if (hasString("offline"))
-            this.offline = getString("offline", "Offline");
+        this.online = getString("online", "Online");
+        this.offline = getString("offline", "Offline");
 
         final BukkitTask task = Bukkit.getScheduler().runTaskTimer(getPlaceholderAPI(), () -> {
 
@@ -119,13 +121,6 @@ public final class BungeeExpansion extends PlaceholderExpansion implements Plugi
             Bukkit.getMessenger().registerOutgoingPluginChannel(getPlaceholderAPI(), MESSAGE_CHANNEL);
             Bukkit.getMessenger().registerIncomingPluginChannel(getPlaceholderAPI(), MESSAGE_CHANNEL, this);
         }
-    }
-
-    private boolean hasString(String path) {
-        ConfigurationSection section = this.getConfigSection();
-        if (section == null)
-            return false;
-        return section.contains(path);
     }
 
     @Override
